@@ -3,6 +3,9 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+import java.util.Properties
+import java.io.FileInputStream
+
 android {
     namespace = "com.streamer.app"
     compileSdk = 34
@@ -13,6 +16,15 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        // Read TMDb API key from local.properties (not committed to git)
+        val localProps = rootProject.file("local.properties")
+        val tmdbKey = if (localProps.exists()) {
+            val props = Properties()
+            props.load(FileInputStream(localProps))
+            props.getProperty("TMDB_API_KEY", "")
+        } else ""
+        buildConfigField("String", "TMDB_API_KEY", "\"$tmdbKey\"")
     }
 
     buildTypes {
@@ -36,6 +48,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     composeOptions {

@@ -65,7 +65,7 @@ class TmdbRepository(
             .map { item ->
                 async {
                     val parsed = FilenameParser.parse(item.name)
-                    val tmdb = if (TmdbApiService.TMDB_API_KEY != "YOUR_TMDB_API_KEY_HERE") {
+                    val tmdb = if (TmdbApiService.TMDB_API_KEY.isNotBlank()) {
                         findMetadata(parsed, isTvCategory || parsed.season != null)
                     } else {
                         null

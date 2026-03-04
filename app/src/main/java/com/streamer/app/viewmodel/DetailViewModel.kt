@@ -28,7 +28,7 @@ class DetailViewModel(
         viewModelScope.launch {
             try {
                 val tmdbId = mediaItem.tmdbId
-                if (tmdbId != null && TmdbApiService.TMDB_API_KEY != "YOUR_TMDB_API_KEY_HERE") {
+                if (tmdbId != null && TmdbApiService.TMDB_API_KEY.isNotBlank()) {
                     val detail = tmdbApi.getMovieDetails(tmdbId)
                     _uiState.value = _uiState.value.copy(detail = detail, isLoading = false)
                 } else {

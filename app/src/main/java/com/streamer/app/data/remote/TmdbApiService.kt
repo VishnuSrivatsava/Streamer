@@ -1,5 +1,6 @@
 package com.streamer.app.data.remote
 
+import com.streamer.app.BuildConfig
 import com.streamer.app.data.model.TmdbMovieDetail
 import com.streamer.app.data.model.TmdbSearchResponse
 import okhttp3.OkHttpClient
@@ -35,10 +36,7 @@ interface TmdbApiService {
 
     companion object {
         const val BASE_URL = "https://api.themoviedb.org/"
-
-        // TODO: Replace with your actual TMDb API key
-        // Get one free at https://www.themoviedb.org/settings/api
-        const val TMDB_API_KEY = "YOUR_TMDB_API_KEY_HERE"
+        val TMDB_API_KEY: String = BuildConfig.TMDB_API_KEY
 
         fun create(): TmdbApiService {
             return Retrofit.Builder()
