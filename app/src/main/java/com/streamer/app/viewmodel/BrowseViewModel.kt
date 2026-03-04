@@ -30,6 +30,12 @@ class BrowseViewModel(
 
     private val pathStack = mutableListOf<Pair<String, String>>()
 
+    fun initIfNeeded(name: String, path: String) {
+        if (pathStack.isEmpty()) {
+            navigateTo(name, path)
+        }
+    }
+
     fun navigateTo(name: String, path: String) {
         pathStack.add(name to path)
         loadDirectory(path)

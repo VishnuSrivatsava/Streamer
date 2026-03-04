@@ -30,14 +30,13 @@ fun BrowseScreen(
     categoryName: String,
     categoryPath: String,
     viewModel: BrowseViewModel = viewModel(),
-    onFolderClick: (name: String, path: String) -> Unit,
     onFileClick: (MediaItem) -> Unit,
     onBack: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(categoryPath) {
-        viewModel.navigateTo(categoryName, categoryPath)
+    LaunchedEffect(Unit) {
+        viewModel.initIfNeeded(categoryName, categoryPath)
     }
 
     BackHandler {
@@ -71,7 +70,7 @@ fun BrowseScreen(
                     items(folders, key = { "folder_${it.indexItem.name}" }) { folder ->
                         FolderCard(
                             item = folder,
-                            onClick = { onFolderClick(folder.title, folder.path) }
+                            onClick = { viewModel.navigateTo(folder.title, folder.path) }
                         )
                     }
 

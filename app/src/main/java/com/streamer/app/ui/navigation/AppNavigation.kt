@@ -45,11 +45,6 @@ fun AppNavigation() {
             BrowseScreen(
                 categoryName = NavArgs.browseName,
                 categoryPath = NavArgs.browsePath,
-                onFolderClick = { folderName, folderPath ->
-                    NavArgs.browseName = folderName
-                    NavArgs.browsePath = folderPath
-                    navController.navigate("browse")
-                },
                 onFileClick = { item ->
                     NavArgs.detailItem = item
                     navController.navigate("detail")
