@@ -59,7 +59,7 @@ fun PlayerScreen(
     }
 
     var playerError by remember { mutableStateOf<String?>(null) }
-    var isFullscreen by remember { mutableStateOf(false) }
+    var isFullscreen by remember { mutableStateOf(!isTv) }
 
     // Apply/remove fullscreen mode on phone
     LaunchedEffect(isFullscreen) {
@@ -165,10 +165,16 @@ fun PlayerScreen(
                     controllerShowTimeoutMs = 3000
                     setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
                     setShowSubtitleButton(true)
-                    // Show fullscreen button on phone only
                     if (!isTv) {
                         setFullscreenButtonClickListener { fullscreen ->
                             isFullscreen = fullscreen
+                        }
+                        // Sync PlayerView's internal fullscreen state to match
+                        // our initially-fullscreen state (icon shows "collapse")
+                        post {
+                            findViewById<android.view.View>(
+                                androidx.media3.ui.R.id.exo_fullscreen
+                            )?.performClick()
                         }
                     }
                 }
