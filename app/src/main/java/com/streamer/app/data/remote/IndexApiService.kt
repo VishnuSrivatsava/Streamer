@@ -11,14 +11,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import java.io.IOException
 
-import java.util.concurrent.TimeUnit
-
 class IndexApiService(
-    private val client: OkHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)
-        .followRedirects(true)
-        .build(),
+    private val client: OkHttpClient = NetworkModule.client,
     private val gson: Gson = Gson()
 ) {
     companion object {

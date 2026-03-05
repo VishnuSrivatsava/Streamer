@@ -21,7 +21,8 @@ data class TmdbSearchResult(
     @SerializedName("release_date") val releaseDate: String? = null,
     @SerializedName("first_air_date") val firstAirDate: String? = null,
     @SerializedName("vote_average") val voteAverage: Double? = null,
-    @SerializedName("genre_ids") val genreIds: List<Int>? = null
+    @SerializedName("genre_ids") val genreIds: List<Int>? = null,
+    @SerializedName("original_language") val originalLanguage: String? = null
 ) {
     val displayTitle: String
         get() = title ?: name ?: ""
@@ -49,8 +50,12 @@ object TmdbImageUtil {
     private const val BASE = "https://image.tmdb.org/t/p/"
 
     fun posterUrl(path: String?, size: String = "w342"): String? =
-        path?.let { "$BASE$size$it" }
+        path?.takeIf { it.isNotBlank() }?.let {
+            if (it.startsWith("http")) it else "$BASE$size$it"
+        }
 
     fun backdropUrl(path: String?, size: String = "w780"): String? =
-        path?.let { "$BASE$size$it" }
+        path?.takeIf { it.isNotBlank() }?.let {
+            if (it.startsWith("http")) it else "$BASE$size$it"
+        }
 }

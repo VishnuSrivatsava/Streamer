@@ -1,5 +1,7 @@
 package com.streamer.app.ui.screens
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -24,15 +26,18 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
-import androidx.tv.material3.Button
-import androidx.tv.material3.ButtonDefaults
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.streamer.app.player.StreamerPlayer
+import com.streamer.app.ui.platform.AdaptiveButton
+import com.streamer.app.ui.platform.LocalIsTv
 import com.streamer.app.ui.theme.StreamerMediumGray
 import com.streamer.app.ui.theme.StreamerRed
 import com.streamer.app.ui.theme.StreamerWhite
@@ -45,11 +50,49 @@ fun PlayerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+    val isTv = LocalIsTv.current
+    val activity = context as? Activity
     val player = remember(streamUrl) {
         StreamerPlayer.create(context, streamUrl)
     }
 
     var playerError by remember { mutableStateOf<String?>(null) }
+    var isFullscreen by remember { mutableStateOf(false) }
+
+    // Apply/remove fullscreen mode on phone
+    LaunchedEffect(isFullscreen) {
+        if (isTv) return@LaunchedEffect
+        activity?.let { act ->
+            val window = act.window
+            val controller = WindowInsetsControllerCompat(window, window.decorView)
+            if (isFullscreen) {
+                WindowCompat.setDecorFitsSystemWindows(window, false)
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+                controller.systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+            } else {
+                WindowCompat.setDecorFitsSystemWindows(window, true)
+                controller.show(WindowInsetsCompat.Type.systemBars())
+                act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_USER
+            }
+        }
+    }
+
+    // Restore system bars and orientation when leaving PlayerScreen
+    DisposableEffect(Unit) {
+        onDispose {
+            if (!isTv) {
+                activity?.let { act ->
+                    val window = act.window
+                    WindowCompat.setDecorFitsSystemWindows(window, true)
+                    val controller = WindowInsetsControllerCompat(window, window.decorView)
+                    controller.show(WindowInsetsCompat.Type.systemBars())
+                    act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_USER
+                }
+            }
+        }
+    }
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
@@ -90,7 +133,6 @@ fun PlayerScreen(
     BackHandler { onBack() }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        // Video player with built-in controls (audio/subtitle selection via gear icon + CC button)
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
@@ -100,6 +142,12 @@ fun PlayerScreen(
                     controllerShowTimeoutMs = 3000
                     setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
                     setShowSubtitleButton(true)
+                    // Show fullscreen button on phone only
+                    if (!isTv) {
+                        setFullscreenButtonClickListener { fullscreen ->
+                            isFullscreen = fullscreen
+                        }
+                    }
                 }
             },
             modifier = Modifier
@@ -136,26 +184,22 @@ fun PlayerScreen(
                         try { retryFocusRequester.requestFocus() } catch (_: Exception) {}
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                        Button(
+                        AdaptiveButton(
                             onClick = {
                                 playerError = null
                                 player.prepare()
                                 player.playWhenReady = true
                             },
                             modifier = Modifier.focusRequester(retryFocusRequester),
-                            colors = ButtonDefaults.colors(
-                                containerColor = StreamerMediumGray,
-                                contentColor = StreamerWhite
-                            )
+                            containerColor = StreamerMediumGray,
+                            contentColor = StreamerWhite
                         ) {
                             Text("Retry")
                         }
-                        Button(
+                        AdaptiveButton(
                             onClick = onBack,
-                            colors = ButtonDefaults.colors(
-                                containerColor = StreamerMediumGray,
-                                contentColor = StreamerWhite
-                            )
+                            containerColor = StreamerMediumGray,
+                            contentColor = StreamerWhite
                         ) {
                             Text("Go Back")
                         }

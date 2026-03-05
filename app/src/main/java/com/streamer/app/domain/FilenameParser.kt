@@ -10,7 +10,8 @@ object FilenameParser {
         val resolution: String? = null,
         val videoCodec: String? = null,
         val audioCodec: String? = null,
-        val source: String? = null
+        val source: String? = null,
+        val language: String? = null // ISO 639-1 code: "ta", "hi", etc.
     )
 
     fun parse(filename: String): ParsedTitle {
@@ -21,6 +22,7 @@ object FilenameParser {
         val videoCodec = extractVideoCodec(nameWithoutExt)
         val audioCodec = extractAudioCodec(nameWithoutExt)
         val source = extractSource(nameWithoutExt)
+        val language = extractLanguage(nameWithoutExt)
 
         val tvRegex = Regex("""(.+?)\s*[Ss](\d{1,2})[Ee](\d{1,2})""")
         val yearParenRegex = Regex("""(.+?)\s*\((\d{4})\)""")
@@ -34,7 +36,8 @@ object FilenameParser {
                 resolution = resolution,
                 videoCodec = videoCodec,
                 audioCodec = audioCodec,
-                source = source
+                source = source,
+                language = language
             )
         }
 
@@ -45,7 +48,8 @@ object FilenameParser {
                 resolution = resolution,
                 videoCodec = videoCodec,
                 audioCodec = audioCodec,
-                source = source
+                source = source,
+                language = language
             )
         }
 
@@ -56,7 +60,8 @@ object FilenameParser {
                 resolution = resolution,
                 videoCodec = videoCodec,
                 audioCodec = audioCodec,
-                source = source
+                source = source,
+                language = language
             )
         }
 
@@ -65,7 +70,8 @@ object FilenameParser {
             resolution = resolution,
             videoCodec = videoCodec,
             audioCodec = audioCodec,
-            source = source
+            source = source,
+            language = language
         )
     }
 
@@ -112,6 +118,27 @@ object FilenameParser {
         }
     }
 
+    private val languageMap = mapOf(
+        "tamil" to "ta", "hindi" to "hi", "telugu" to "te",
+        "malayalam" to "ml", "kannada" to "kn", "bengali" to "bn",
+        "marathi" to "mr", "punjabi" to "pa", "gujarati" to "gu",
+        "korean" to "ko", "japanese" to "ja", "chinese" to "zh",
+        "spanish" to "es", "french" to "fr", "german" to "de",
+        "italian" to "it", "portuguese" to "pt", "russian" to "ru",
+        "arabic" to "ar", "thai" to "th", "turkish" to "tr",
+        "indonesian" to "id", "vietnamese" to "vi", "polish" to "pl",
+        "dutch" to "nl", "swedish" to "sv", "danish" to "da",
+        "norwegian" to "no", "finnish" to "fi"
+    )
+
+    private fun extractLanguage(name: String): String? {
+        val pattern = Regex(
+            """\b(${languageMap.keys.joinToString("|")})\b""",
+            RegexOption.IGNORE_CASE
+        )
+        return pattern.find(name)?.value?.lowercase()?.let { languageMap[it] }
+    }
+
     private fun cleanTitle(raw: String): String {
         return raw
             .replace('.', ' ')
@@ -119,7 +146,7 @@ object FilenameParser {
             .replace('-', ' ')
             .replace(
                 Regex(
-                    """\b(720p|1080p|2160p|4[kK]|[bB]lu[Rr]ay|WEB[Rr]ip|WEB-?DL|HDRip|BRRip|DVDRip|x264|x265|HEVC|H\.?264|H\.?265|AAC|DTS|AC3|YIFY|RARBG|YTS|AMZN|NF|REMUX)\b""",
+                    """\b(720p|1080p|2160p|4[kK]|[bB]lu[Rr]ay|WEB[Rr]ip|WEB-?DL|HDRip|BRRip|DVDRip|x264|x265|HEVC|H\.?264|H\.?265|AAC|DTS|AC3|YIFY|RARBG|YTS|AMZN|NF|REMUX|Tamil|Hindi|Telugu|Malayalam|Kannada|Bengali|Marathi|Punjabi|Gujarati|Korean|Japanese|Chinese|Spanish|French|German|Italian|Portuguese|Russian|Arabic|Thai|Turkish|Indonesian|Vietnamese|Polish|Dutch|Swedish|Danish|Norwegian|Finnish)\b""",
                     RegexOption.IGNORE_CASE
                 ),
                 ""

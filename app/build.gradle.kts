@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
 }
 
 import java.util.Properties
@@ -25,6 +26,13 @@ android {
             props.getProperty("TMDB_API_KEY", "")
         } else ""
         buildConfigField("String", "TMDB_API_KEY", "\"$tmdbKey\"")
+
+        val tvdbKey = if (localProps.exists()) {
+            val tvdbProps = Properties()
+            tvdbProps.load(FileInputStream(localProps))
+            tvdbProps.getProperty("TVDB_API_KEY", "")
+        } else ""
+        buildConfigField("String", "TVDB_API_KEY", "\"$tvdbKey\"")
     }
 
     buildTypes {
@@ -106,4 +114,9 @@ dependencies {
 
     // Core
     implementation(libs.core.ktx)
+
+    // Room
+    implementation(libs.room.runtime)
+    implementation(libs.room.ktx)
+    ksp(libs.room.compiler)
 }

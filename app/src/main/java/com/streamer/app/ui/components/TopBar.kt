@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.streamer.app.ui.platform.AdaptiveDimens
 import com.streamer.app.ui.theme.StreamerLightGray
 
 @OptIn(ExperimentalTvMaterial3Api::class)
@@ -20,10 +21,12 @@ fun TopBar(
     breadcrumbs: List<Pair<String, String>> = emptyList(),
     modifier: Modifier = Modifier
 ) {
+    val horizontalPadding = AdaptiveDimens.horizontalPadding()
+
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 48.dp, vertical = 16.dp),
+            .padding(horizontal = horizontalPadding, vertical = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (breadcrumbs.isNotEmpty()) {

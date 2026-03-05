@@ -15,14 +15,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.material3.Card
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.streamer.app.data.model.MediaItem
+import com.streamer.app.ui.platform.AdaptiveCard
+import com.streamer.app.ui.platform.AdaptiveDimens
 import com.streamer.app.ui.theme.StreamerDarkGray
-import com.streamer.app.ui.theme.StreamerRed
-import com.streamer.app.ui.theme.StreamerYellow
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
@@ -31,10 +30,12 @@ fun FolderCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    val folderWidth = AdaptiveDimens.folderCardWidth()
+
+    AdaptiveCard(
         onClick = onClick,
         modifier = modifier
-            .width(200.dp)
+            .width(folderWidth)
             .height(80.dp)
     ) {
         Row(

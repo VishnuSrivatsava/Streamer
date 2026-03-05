@@ -18,17 +18,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.tv.material3.Card
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
-import coil.compose.AsyncImage
+import coil.compose.SubcomposeAsyncImage
+import coil.compose.SubcomposeAsyncImageContent
+import coil.request.ImageRequest
 import com.streamer.app.data.model.MediaItem
+import com.streamer.app.ui.platform.AdaptiveCard
+import com.streamer.app.ui.platform.AdaptiveDimens
 import com.streamer.app.ui.theme.StreamerDarkGray
 import com.streamer.app.ui.theme.StreamerLightGray
 import com.streamer.app.ui.theme.StreamerMediumGray
@@ -42,109 +46,42 @@ fun MediaCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    val cardWidth = AdaptiveDimens.cardWidth()
+
+    AdaptiveCard(
         onClick = onClick,
         modifier = modifier
-            .width(150.dp)
+            .width(cardWidth)
             .aspectRatio(2f / 3f)
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (item.posterUrl != null) {
-                AsyncImage(
-                    model = item.posterUrl,
+                SubcomposeAsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(item.posterUrl)
+                        .crossfade(true)
+                        .build(),
                     contentDescription = item.title,
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    loading = {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(StreamerDarkGray)
+                        )
+                    },
+                    error = {
+                        FallbackCardContent(item)
+                    },
+                    success = {
+                        SubcomposeAsyncImageContent()
+                    }
                 )
             } else {
-                // No-poster design: gradient background with title and metadata
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    StreamerMediumGray,
-                                    StreamerDarkGray
-                                )
-                            )
-                        )
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(10.dp),
-                        verticalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        // Top: resolution badge if available
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            item.resolution?.let { res ->
-                                Text(
-                                    text = res,
-                                    modifier = Modifier
-                                        .background(StreamerRed, RoundedCornerShape(4.dp))
-                                        .padding(horizontal = 6.dp, vertical = 2.dp),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = StreamerWhite,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-
-                        // Center: movie icon + title
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f),
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "\uD83C\uDFAC",
-                                fontSize = 28.sp
-                            )
-                            Spacer(Modifier.height(6.dp))
-                            Text(
-                                text = item.title,
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = StreamerWhite,
-                                textAlign = TextAlign.Center,
-                                maxLines = 3,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-
-                        // Bottom: year + file size
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            item.year?.let { year ->
-                                Text(
-                                    text = "$year",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = StreamerLightGray
-                                )
-                            } ?: Spacer(Modifier.width(1.dp))
-
-                            item.indexItem.sizeBytes?.let { bytes ->
-                                Text(
-                                    text = formatSize(bytes),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = StreamerLightGray
-                                )
-                            }
-                        }
-                    }
-                }
+                FallbackCardContent(item)
             }
 
-            // Rating badge (only when TMDb poster present)
             if (item.posterUrl != null) {
                 item.rating?.let { rating ->
                     if (rating > 0) {
@@ -174,6 +111,92 @@ fun MediaCard(
                             .padding(horizontal = 6.dp, vertical = 2.dp),
                         style = MaterialTheme.typography.labelSmall,
                         color = StreamerWhite
+                    )
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalTvMaterial3Api::class)
+@Composable
+private fun FallbackCardContent(item: MediaItem) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        StreamerMediumGray,
+                        StreamerDarkGray
+                    )
+                )
+            )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(10.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                item.resolution?.let { res ->
+                    Text(
+                        text = res,
+                        modifier = Modifier
+                            .background(StreamerRed, RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 2.dp),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = StreamerWhite,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "\uD83C\uDFAC",
+                    fontSize = 28.sp
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = item.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = StreamerWhite,
+                    textAlign = TextAlign.Center,
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                item.year?.let { year ->
+                    Text(
+                        text = "$year",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = StreamerLightGray
+                    )
+                } ?: Spacer(Modifier.width(1.dp))
+
+                item.indexItem.sizeBytes?.let { bytes ->
+                    Text(
+                        text = formatSize(bytes),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = StreamerLightGray
                     )
                 }
             }

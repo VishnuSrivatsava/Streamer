@@ -15,6 +15,8 @@ import androidx.compose.ui.unit.dp
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
+import com.streamer.app.ui.platform.AdaptiveButton
+import com.streamer.app.ui.platform.AdaptiveDimens
 import com.streamer.app.ui.theme.StreamerDarkGray
 import com.streamer.app.ui.theme.StreamerRed
 
@@ -47,7 +49,7 @@ fun ErrorState(
                 text = message,
                 style = MaterialTheme.typography.bodyLarge
             )
-            androidx.tv.material3.Button(onClick = onRetry) {
+            AdaptiveButton(onClick = onRetry) {
                 Text("Retry")
             }
         }
@@ -56,6 +58,7 @@ fun ErrorState(
 
 @Composable
 fun ShimmerRow(modifier: Modifier = Modifier) {
+    val cardWidth = AdaptiveDimens.cardWidth()
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.spacedBy(16.dp)
@@ -63,7 +66,7 @@ fun ShimmerRow(modifier: Modifier = Modifier) {
         repeat(6) {
             Box(
                 modifier = Modifier
-                    .width(150.dp)
+                    .width(cardWidth)
                     .aspectRatio(2f / 3f)
                     .background(StreamerDarkGray, RoundedCornerShape(8.dp))
             )
