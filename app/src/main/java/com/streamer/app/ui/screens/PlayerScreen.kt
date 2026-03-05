@@ -2,6 +2,8 @@ package com.streamer.app.ui.screens
 
 import android.app.Activity
 import android.content.pm.ActivityInfo
+import android.os.Build
+import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusable
@@ -71,10 +73,24 @@ fun PlayerScreen(
                 controller.systemBarsBehavior =
                     WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                // Allow content to extend into the display cutout area (notch/punch-hole)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    window.attributes = window.attributes.also {
+                        it.layoutInDisplayCutoutMode =
+                            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                    }
+                }
             } else {
                 WindowCompat.setDecorFitsSystemWindows(window, true)
                 controller.show(WindowInsetsCompat.Type.systemBars())
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_USER
+                // Reset cutout mode
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    window.attributes = window.attributes.also {
+                        it.layoutInDisplayCutoutMode =
+                            WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+                    }
+                }
             }
         }
     }
@@ -89,6 +105,13 @@ fun PlayerScreen(
                     val controller = WindowInsetsControllerCompat(window, window.decorView)
                     controller.show(WindowInsetsCompat.Type.systemBars())
                     act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_FULL_USER
+                    // Reset cutout mode
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        window.attributes = window.attributes.also {
+                            it.layoutInDisplayCutoutMode =
+                                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+                        }
+                    }
                 }
             }
         }
@@ -132,7 +155,7 @@ fun PlayerScreen(
 
     BackHandler { onBack() }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
