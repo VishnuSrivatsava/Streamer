@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.pm.ActivityInfo
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,10 +12,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -31,6 +34,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import androidx.tv.material3.ExperimentalTvMaterial3Api
 import androidx.tv.material3.MaterialTheme
@@ -58,6 +62,7 @@ fun PlayerScreen(
 
     var playerError by remember { mutableStateOf<String?>(null) }
     var isFullscreen by remember { mutableStateOf(!isTv) }
+    var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
 
     // Apply/remove fullscreen mode on phone
     LaunchedEffect(isFullscreen) {
@@ -149,10 +154,41 @@ fun PlayerScreen(
                     }
                 }
             },
+            update = { view ->
+                view.resizeMode = resizeMode
+            },
             modifier = Modifier
                 .fillMaxSize()
                 .focusable()
         )
+
+        // Resize mode toggle (top-right)
+        val resizeLabel = when (resizeMode) {
+            AspectRatioFrameLayout.RESIZE_MODE_FIT -> "Fit"
+            AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> "Crop"
+            AspectRatioFrameLayout.RESIZE_MODE_FILL -> "Stretch"
+            else -> "Fit"
+        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                .clickable {
+                    resizeMode = when (resizeMode) {
+                        AspectRatioFrameLayout.RESIZE_MODE_FIT -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                        AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                        else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                    }
+                }
+                .padding(horizontal = 12.dp, vertical = 6.dp)
+        ) {
+            Text(
+                text = resizeLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = StreamerWhite
+            )
+        }
 
         // Error overlay
         playerError?.let { error ->
