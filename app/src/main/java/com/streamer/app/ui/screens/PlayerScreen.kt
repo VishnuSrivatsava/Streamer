@@ -63,6 +63,7 @@ fun PlayerScreen(
     var playerError by remember { mutableStateOf<String?>(null) }
     var isFullscreen by remember { mutableStateOf(!isTv) }
     var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
+    var controlsVisible by remember { mutableStateOf(false) }
 
     // Apply/remove fullscreen mode on phone
     LaunchedEffect(isFullscreen) {
@@ -147,6 +148,11 @@ fun PlayerScreen(
                     controllerShowTimeoutMs = 3000
                     setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
                     setShowSubtitleButton(true)
+                    setControllerVisibilityListener(
+                        PlayerView.ControllerVisibilityListener { visibility ->
+                            controlsVisible = visibility == android.view.View.VISIBLE
+                        }
+                    )
                     if (!isTv) {
                         setFullscreenButtonClickListener { fullscreen ->
                             isFullscreen = fullscreen
@@ -162,32 +168,34 @@ fun PlayerScreen(
                 .focusable()
         )
 
-        // Resize mode toggle (top-right)
-        val resizeLabel = when (resizeMode) {
-            AspectRatioFrameLayout.RESIZE_MODE_FIT -> "Fit"
-            AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> "Crop"
-            AspectRatioFrameLayout.RESIZE_MODE_FILL -> "Stretch"
-            else -> "Fit"
-        }
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp)
-                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                .clickable {
-                    resizeMode = when (resizeMode) {
-                        AspectRatioFrameLayout.RESIZE_MODE_FIT -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
-                        AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_FILL
-                        else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+        // Resize mode toggle (top-right, visible only when player controls are showing)
+        if (controlsVisible) {
+            val resizeLabel = when (resizeMode) {
+                AspectRatioFrameLayout.RESIZE_MODE_FIT -> "Fit"
+                AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> "Crop"
+                AspectRatioFrameLayout.RESIZE_MODE_FILL -> "Stretch"
+                else -> "Fit"
+            }
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    .clickable {
+                        resizeMode = when (resizeMode) {
+                            AspectRatioFrameLayout.RESIZE_MODE_FIT -> AspectRatioFrameLayout.RESIZE_MODE_ZOOM
+                            AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> AspectRatioFrameLayout.RESIZE_MODE_FILL
+                            else -> AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        }
                     }
-                }
-                .padding(horizontal = 12.dp, vertical = 6.dp)
-        ) {
-            Text(
-                text = resizeLabel,
-                style = MaterialTheme.typography.bodySmall,
-                color = StreamerWhite
-            )
+                    .padding(horizontal = 12.dp, vertical = 6.dp)
+            ) {
+                Text(
+                    text = resizeLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = StreamerWhite
+                )
+            }
         }
 
         // Error overlay
