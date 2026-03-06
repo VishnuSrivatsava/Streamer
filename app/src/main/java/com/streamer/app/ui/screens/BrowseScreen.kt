@@ -22,6 +22,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.foundation.lazy.grid.TvGridCells
@@ -73,6 +75,14 @@ fun BrowseScreen(
         is BrowseViewModel.BrowseUiState.Success -> {
             val horizontalPadding = AdaptiveDimens.horizontalPadding()
             val gridMinSize = AdaptiveDimens.gridMinSize()
+            val isTv = LocalIsTv.current
+            val firstItemFocus = remember { FocusRequester() }
+
+            LaunchedEffect(state.currentPath) {
+                if (isTv) {
+                    try { firstItemFocus.requestFocus() } catch (_: Exception) {}
+                }
+            }
 
             // Reset search when navigating to a new directory
             var searchQuery by remember(state.currentPath) { mutableStateOf("") }
@@ -153,12 +163,17 @@ fun BrowseScreen(
                             val folder = filteredFolders[index]
                             FolderCard(
                                 item = folder,
-                                onClick = { viewModel.navigateTo(folder.title, folder.path) }
+                                onClick = { viewModel.navigateTo(folder.title, folder.path) },
+                                modifier = if (index == 0) Modifier.focusRequester(firstItemFocus) else Modifier
                             )
                         }
                         items(filteredFiles.size, key = { "file_${filteredFiles[it].indexItem.name}" }) { index ->
                             val file = filteredFiles[index]
-                            MediaCard(item = file, onClick = { onFileClick(file) })
+                            MediaCard(
+                                item = file,
+                                onClick = { onFileClick(file) },
+                                modifier = if (filteredFolders.isEmpty() && index == 0) Modifier.focusRequester(firstItemFocus) else Modifier
+                            )
                         }
                     }
                 } else {

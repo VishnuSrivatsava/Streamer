@@ -13,10 +13,14 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.foundation.lazy.grid.TvGridCells
@@ -50,6 +54,14 @@ fun HomeScreen(
         is HomeViewModel.HomeUiState.Success -> {
             val horizontalPadding = AdaptiveDimens.horizontalPadding()
             val gridMinSize = AdaptiveDimens.homeGridMinSize()
+            val isTv = LocalIsTv.current
+            val firstItemFocus = remember { FocusRequester() }
+
+            LaunchedEffect(Unit) {
+                if (isTv) {
+                    try { firstItemFocus.requestFocus() } catch (_: Exception) {}
+                }
+            }
 
             Column(modifier = Modifier.fillMaxSize()) {
                 Text(
@@ -68,7 +80,11 @@ fun HomeScreen(
                     ) {
                         items(state.drives.size, key = { state.drives[it].path }) { index ->
                             val drive = state.drives[index]
-                            DriveCard(name = drive.name, onClick = { onCategoryClick(drive.name, drive.path) })
+                            DriveCard(
+                                name = drive.name,
+                                onClick = { onCategoryClick(drive.name, drive.path) },
+                                modifier = if (index == 0) Modifier.focusRequester(firstItemFocus) else Modifier
+                            )
                         }
                     }
                 } else {
@@ -91,10 +107,10 @@ fun HomeScreen(
 
 @OptIn(ExperimentalTvMaterial3Api::class)
 @Composable
-private fun DriveCard(name: String, onClick: () -> Unit) {
+private fun DriveCard(name: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
     AdaptiveCard(
         onClick = onClick,
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .height(120.dp)
     ) {
