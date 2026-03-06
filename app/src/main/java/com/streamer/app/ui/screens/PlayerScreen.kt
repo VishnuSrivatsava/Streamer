@@ -114,8 +114,11 @@ fun PlayerScreen(
     }
 
     // Restore system bars and orientation when leaving PlayerScreen
+    // and clear View-level focus so Compose focus system isn't corrupted
+    // for the screen we navigate back to (BrowseScreen).
     DisposableEffect(Unit) {
         onDispose {
+            playerView?.clearFocus()
             if (!isTv) {
                 activity?.let { act ->
                     val window = act.window
