@@ -73,6 +73,7 @@ fun PlayerScreen(
     val boxFocusRequester = remember { FocusRequester() }
     val androidViewFocusRequester = remember { FocusRequester() }
     var seekRepeatCount by remember { mutableIntStateOf(0) }
+    var lastSeekTimeNanos by remember { mutableStateOf(0L) }
 
     // Two-mode focus: when controls are hidden, Box gets focus (onPreviewKeyEvent
     // handles seek/play/show). When controls are visible, AndroidView gets focus
@@ -186,30 +187,39 @@ fun PlayerScreen(
                 if (event.type != KeyEventType.KeyDown) {
                     if (event.key == Key.DirectionLeft || event.key == Key.DirectionRight) {
                         seekRepeatCount = 0
+                        lastSeekTimeNanos = 0L
                     }
                     return@onPreviewKeyEvent true
                 }
 
                 when (event.key) {
                     Key.DirectionLeft, Key.DirectionRight -> {
-                        // Progressive seek: ramps from 10s up to 30s when holding
-                        seekRepeatCount++
-                        val seekMs = minOf(
-                            10_000L + (seekRepeatCount - 1) * 3_000L,
-                            30_000L
-                        )
-                        val current = player.currentPosition
-                        val target = if (event.key == Key.DirectionLeft) {
-                            maxOf(0L, current - seekMs)
+                        // Throttle: Android TV sends ~20 key repeats/sec when holding.
+                        // Only process one seek per 250ms to prevent jumping minutes.
+                        val now = System.nanoTime()
+                        val elapsedMs = (now - lastSeekTimeNanos) / 1_000_000
+                        if (seekRepeatCount > 0 && elapsedMs < 250) {
+                            // Consume but don't seek — too fast
                         } else {
-                            val dur = player.duration
-                            if (dur != androidx.media3.common.C.TIME_UNSET) {
-                                minOf(dur, current + seekMs)
+                            seekRepeatCount++
+                            lastSeekTimeNanos = now
+                            val seekMs = minOf(
+                                10_000L + (seekRepeatCount - 1) * 2_000L,
+                                30_000L
+                            )
+                            val current = player.currentPosition
+                            val target = if (event.key == Key.DirectionLeft) {
+                                maxOf(0L, current - seekMs)
                             } else {
-                                current + seekMs
+                                val dur = player.duration
+                                if (dur != androidx.media3.common.C.TIME_UNSET) {
+                                    minOf(dur, current + seekMs)
+                                } else {
+                                    current + seekMs
+                                }
                             }
+                            player.seekTo(target)
                         }
-                        player.seekTo(target)
                         pv.showController()
                     }
                     Key.DirectionCenter, Key.Enter -> {
