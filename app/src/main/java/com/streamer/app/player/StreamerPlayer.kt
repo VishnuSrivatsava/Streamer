@@ -15,10 +15,8 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
-import okhttp3.Interceptor
-import okhttp3.OkHttpClient
+import com.streamer.app.data.remote.NetworkModule
 import java.net.URLDecoder
-import java.util.concurrent.TimeUnit
 
 @OptIn(UnstableApi::class)
 object StreamerPlayer {
@@ -32,27 +30,8 @@ object StreamerPlayer {
     fun create(context: Context, streamUrl: String): ExoPlayer {
         Log.d(TAG, "Creating player for: $streamUrl")
 
-        // OkHttp client with generous timeouts for large video files
-        val loggingInterceptor = Interceptor { chain ->
-            val request = chain.request()
-            Log.d(TAG, "HTTP Request: ${request.method} ${request.url}")
-            val response = chain.proceed(request)
-            Log.d(TAG, "HTTP Response: ${response.code} for ${request.url}")
-            if (!response.isSuccessful && response.code != 206) {
-                Log.e(TAG, "HTTP Error ${response.code}: ${response.message}")
-            }
-            response
-        }
-
-        val okHttpClient = OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor)
-            .connectTimeout(30, TimeUnit.SECONDS)
-            .readTimeout(60, TimeUnit.SECONDS)
-            .followRedirects(true)
-            .followSslRedirects(true)
-            .build()
-
-        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+        // Use the shared OkHttpClient (has OCSP-lenient TrustManager for TV devices)
+        val dataSourceFactory = OkHttpDataSource.Factory(NetworkModule.client)
             .setUserAgent(USER_AGENT)
 
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
