@@ -16,7 +16,11 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import com.streamer.app.data.remote.NetworkModule
+import okhttp3.OkHttpClient
 import java.net.URLDecoder
+import java.util.concurrent.TimeUnit
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
 
 @OptIn(UnstableApi::class)
 object StreamerPlayer {
@@ -30,8 +34,27 @@ object StreamerPlayer {
     fun create(context: Context, streamUrl: String): ExoPlayer {
         Log.d(TAG, "Creating player for: $streamUrl")
 
-        // Use the shared OkHttpClient (has OCSP-lenient TrustManager for TV devices)
-        val dataSourceFactory = OkHttpDataSource.Factory(NetworkModule.client)
+        // Dedicated OkHttpClient per player (own connection pool avoids stale
+        // connections from previous sessions). Includes OCSP-lenient TrustManager
+        // for TV devices with clock drift.
+        val okHttpClient = OkHttpClient.Builder()
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .followRedirects(true)
+            .followSslRedirects(true)
+            .apply {
+                try {
+                    val trustManager = NetworkModule.createLenientTrustManager()
+                    val sslContext = SSLContext.getInstance("TLS")
+                    sslContext.init(null, arrayOf<TrustManager>(trustManager), null)
+                    sslSocketFactory(sslContext.socketFactory, trustManager)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Failed to set up lenient TLS, using defaults", e)
+                }
+            }
+            .build()
+
+        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
             .setUserAgent(USER_AGENT)
 
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)

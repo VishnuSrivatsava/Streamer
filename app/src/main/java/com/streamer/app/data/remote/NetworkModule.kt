@@ -54,7 +54,7 @@ object NetworkModule {
      * on TV emulators and devices with system clock drift.
      * Certificate chain validation is still enforced — only stale OCSP responses are bypassed.
      */
-    private fun createLenientTrustManager(): X509TrustManager {
+    internal fun createLenientTrustManager(): X509TrustManager {
         val factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm())
         factory.init(null as KeyStore?)
         val defaultTm = factory.trustManagers
