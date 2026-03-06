@@ -70,14 +70,21 @@ fun PlayerScreen(
     var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
     var controlsVisible by remember { mutableStateOf(false) }
     var playerView by remember { mutableStateOf<PlayerView?>(null) }
-    val playerFocusRequester = remember { FocusRequester() }
+    val boxFocusRequester = remember { FocusRequester() }
+    val androidViewFocusRequester = remember { FocusRequester() }
 
-    // Give the root Box Compose focus so it receives key events on TV.
-    // Re-request when controls hide because the resize button (clickable = focusable)
-    // can steal focus while controls are visible.
+    // Two-mode focus: when controls are hidden, Box gets focus (onPreviewKeyEvent
+    // handles seek/play/show). When controls are visible, AndroidView gets focus
+    // so key events reach PlayerView's controller for CC/gear/seek bar navigation.
     LaunchedEffect(controlsVisible) {
         if (isTv) {
-            try { playerFocusRequester.requestFocus() } catch (_: Exception) {}
+            try {
+                if (controlsVisible) {
+                    androidViewFocusRequester.requestFocus()
+                } else {
+                    boxFocusRequester.requestFocus()
+                }
+            } catch (_: Exception) {}
         }
     }
 
@@ -158,7 +165,7 @@ fun PlayerScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black)
-            .focusRequester(playerFocusRequester)
+            .focusRequester(boxFocusRequester)
             .focusable()
             .onPreviewKeyEvent { event ->
                 if (!isTv) return@onPreviewKeyEvent false
@@ -203,6 +210,8 @@ fun PlayerScreen(
                     controllerShowTimeoutMs = 5000
                     setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
                     setShowSubtitleButton(true)
+                    isFocusable = true
+                    isFocusableInTouchMode = true
                     setControllerVisibilityListener(
                         PlayerView.ControllerVisibilityListener { visibility ->
                             controlsVisible = visibility == android.view.View.VISIBLE
@@ -218,7 +227,10 @@ fun PlayerScreen(
             update = { view ->
                 view.resizeMode = resizeMode
             },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .focusRequester(androidViewFocusRequester)
+                .focusable()
         )
 
         // Resize mode toggle (top-right, visible only when player controls are showing, phone only)
