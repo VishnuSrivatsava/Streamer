@@ -152,6 +152,12 @@ fun PlayerScreen(
                     setControllerVisibilityListener(
                         PlayerView.ControllerVisibilityListener { visibility ->
                             controlsVisible = visibility == android.view.View.VISIBLE
+                            // When controls hide, focus stays on the (now invisible)
+                            // seek bar/buttons. Reclaim focus on the PlayerView so the
+                            // next D-pad press can show controls again.
+                            if (visibility != android.view.View.VISIBLE) {
+                                requestFocus()
+                            }
                         }
                     )
                     if (!isTv) {
