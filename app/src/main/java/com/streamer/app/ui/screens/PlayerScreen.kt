@@ -5,7 +5,6 @@ import android.content.pm.ActivityInfo
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -148,6 +147,8 @@ fun PlayerScreen(
                     controllerShowTimeoutMs = 3000
                     setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
                     setShowSubtitleButton(true)
+                    isFocusable = true
+                    isFocusableInTouchMode = true
                     setControllerVisibilityListener(
                         PlayerView.ControllerVisibilityListener { visibility ->
                             controlsVisible = visibility == android.view.View.VISIBLE
@@ -158,14 +159,15 @@ fun PlayerScreen(
                             isFullscreen = fullscreen
                         }
                     }
+                    // Request focus at Android View level so PlayerView
+                    // receives remote/D-pad key events directly on TV
+                    post { requestFocus() }
                 }
             },
             update = { view ->
                 view.resizeMode = resizeMode
             },
-            modifier = Modifier
-                .fillMaxSize()
-                .focusable()
+            modifier = Modifier.fillMaxSize()
         )
 
         // Resize mode toggle (top-right, visible only when player controls are showing)
