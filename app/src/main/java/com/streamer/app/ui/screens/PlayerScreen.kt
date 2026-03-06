@@ -5,6 +5,7 @@ import android.content.pm.ActivityInfo
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -63,6 +69,15 @@ fun PlayerScreen(
     var isFullscreen by remember { mutableStateOf(!isTv) }
     var resizeMode by remember { mutableIntStateOf(AspectRatioFrameLayout.RESIZE_MODE_FIT) }
     var controlsVisible by remember { mutableStateOf(false) }
+    var playerView by remember { mutableStateOf<PlayerView?>(null) }
+    val playerFocusRequester = remember { FocusRequester() }
+
+    // Give the root Box Compose focus so it receives key events on TV
+    LaunchedEffect(Unit) {
+        if (isTv) {
+            try { playerFocusRequester.requestFocus() } catch (_: Exception) {}
+        }
+    }
 
     // Apply/remove fullscreen mode on phone
     LaunchedEffect(isFullscreen) {
@@ -137,7 +152,40 @@ fun PlayerScreen(
 
     BackHandler { onBack() }
 
-    Box(modifier = Modifier.fillMaxSize().background(Color.Black)) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.Black)
+            .focusRequester(playerFocusRequester)
+            .focusable()
+            .onPreviewKeyEvent { event ->
+                if (!isTv) return@onPreviewKeyEvent false
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                val pv = playerView ?: return@onPreviewKeyEvent false
+                when (event.key) {
+                    Key.DirectionLeft -> {
+                        player.seekBack()
+                        pv.showController()
+                        true
+                    }
+                    Key.DirectionRight -> {
+                        player.seekForward()
+                        pv.showController()
+                        true
+                    }
+                    Key.DirectionCenter, Key.Enter -> {
+                        if (player.isPlaying) player.pause() else player.play()
+                        pv.showController()
+                        true
+                    }
+                    Key.DirectionUp, Key.DirectionDown -> {
+                        pv.showController()
+                        true
+                    }
+                    else -> false
+                }
+            }
+    ) {
         AndroidView(
             factory = { ctx ->
                 PlayerView(ctx).apply {
@@ -147,17 +195,9 @@ fun PlayerScreen(
                     controllerShowTimeoutMs = 3000
                     setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
                     setShowSubtitleButton(true)
-                    isFocusable = true
-                    isFocusableInTouchMode = true
                     setControllerVisibilityListener(
                         PlayerView.ControllerVisibilityListener { visibility ->
                             controlsVisible = visibility == android.view.View.VISIBLE
-                            // When controls hide, focus stays on the (now invisible)
-                            // seek bar/buttons. Reclaim focus on the PlayerView so the
-                            // next D-pad press can show controls again.
-                            if (visibility != android.view.View.VISIBLE) {
-                                requestFocus()
-                            }
                         }
                     )
                     if (!isTv) {
@@ -165,10 +205,7 @@ fun PlayerScreen(
                             isFullscreen = fullscreen
                         }
                     }
-                    // Request focus at Android View level so PlayerView
-                    // receives remote/D-pad key events directly on TV
-                    post { requestFocus() }
-                }
+                }.also { playerView = it }
             },
             update = { view ->
                 view.resizeMode = resizeMode
