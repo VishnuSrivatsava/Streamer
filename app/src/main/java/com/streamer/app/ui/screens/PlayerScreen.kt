@@ -81,6 +81,9 @@ fun PlayerScreen(
             try {
                 if (controlsVisible) {
                     androidViewFocusRequester.requestFocus()
+                    // Also give Android View focus to PlayerView so its
+                    // internal controller elements are in the focus chain
+                    playerView?.requestFocus()
                 } else {
                     boxFocusRequester.requestFocus()
                 }
@@ -231,6 +234,42 @@ fun PlayerScreen(
                 .fillMaxSize()
                 .focusRequester(androidViewFocusRequester)
                 .focusable()
+                .onPreviewKeyEvent { event ->
+                    // When controls are visible and AndroidView has focus,
+                    // manually handle D-pad focus navigation between controller
+                    // elements (seek bar, CC, gear) since Compose's AndroidView
+                    // doesn't support automatic View focus navigation.
+                    if (!isTv || event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                    val pv = playerView ?: return@onPreviewKeyEvent false
+                    val focused = pv.findFocus() ?: pv
+
+                    when (event.key) {
+                        Key.DirectionDown, Key.DirectionUp -> {
+                            val direction = if (event.key == Key.DirectionDown)
+                                android.view.View.FOCUS_DOWN else android.view.View.FOCUS_UP
+                            val next = focused.focusSearch(direction)
+                            if (next != null && next != focused) {
+                                next.requestFocus()
+                                true
+                            } else false
+                        }
+                        Key.DirectionLeft, Key.DirectionRight -> {
+                            val direction = if (event.key == Key.DirectionLeft)
+                                android.view.View.FOCUS_LEFT else android.view.View.FOCUS_RIGHT
+                            val next = focused.focusSearch(direction)
+                            if (next != null && next != focused) {
+                                // Navigate between buttons (CC, gear, etc.)
+                                next.requestFocus()
+                                true
+                            } else {
+                                // No focus target (e.g. seek bar spans full width)
+                                // → let the view handle it (seek bar scrubbing)
+                                false
+                            }
+                        }
+                        else -> false // Center/Enter pass through to activate buttons
+                    }
+                }
         )
 
         // Resize mode toggle (top-right, visible only when player controls are showing, phone only)
