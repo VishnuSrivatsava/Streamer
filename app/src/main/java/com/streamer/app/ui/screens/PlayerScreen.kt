@@ -72,6 +72,7 @@ fun PlayerScreen(
     var playerView by remember { mutableStateOf<PlayerView?>(null) }
     val boxFocusRequester = remember { FocusRequester() }
     val androidViewFocusRequester = remember { FocusRequester() }
+    var seekRepeatCount by remember { mutableIntStateOf(0) }
 
     // Two-mode focus: when controls are hidden, Box gets focus (onPreviewKeyEvent
     // handles seek/play/show). When controls are visible, AndroidView gets focus
@@ -173,7 +174,6 @@ fun PlayerScreen(
             .onPreviewKeyEvent { event ->
                 if (!isTv) return@onPreviewKeyEvent false
                 val pv = playerView ?: return@onPreviewKeyEvent false
-                // Consume both ACTION_DOWN and ACTION_UP for handled keys
                 val dominated = when (event.key) {
                     Key.DirectionLeft, Key.DirectionRight,
                     Key.DirectionCenter, Key.Enter,
@@ -181,15 +181,35 @@ fun PlayerScreen(
                     else -> false
                 }
                 if (!dominated) return@onPreviewKeyEvent false
-                // Only act on key-down, but consume key-up too
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent true
-                when (event.key) {
-                    Key.DirectionLeft -> {
-                        player.seekBack()
-                        pv.showController()
+
+                // On key-up: reset seek repeat counter for seek keys, consume all
+                if (event.type != KeyEventType.KeyDown) {
+                    if (event.key == Key.DirectionLeft || event.key == Key.DirectionRight) {
+                        seekRepeatCount = 0
                     }
-                    Key.DirectionRight -> {
-                        player.seekForward()
+                    return@onPreviewKeyEvent true
+                }
+
+                when (event.key) {
+                    Key.DirectionLeft, Key.DirectionRight -> {
+                        // Progressive seek: ramps from 10s up to 30s when holding
+                        seekRepeatCount++
+                        val seekMs = minOf(
+                            10_000L + (seekRepeatCount - 1) * 3_000L,
+                            30_000L
+                        )
+                        val current = player.currentPosition
+                        val target = if (event.key == Key.DirectionLeft) {
+                            maxOf(0L, current - seekMs)
+                        } else {
+                            val dur = player.duration
+                            if (dur != androidx.media3.common.C.TIME_UNSET) {
+                                minOf(dur, current + seekMs)
+                            } else {
+                                current + seekMs
+                            }
+                        }
+                        player.seekTo(target)
                         pv.showController()
                     }
                     Key.DirectionCenter, Key.Enter -> {
