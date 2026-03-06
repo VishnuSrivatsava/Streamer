@@ -174,6 +174,10 @@ fun PlayerScreen(
             .focusable()
             .onPreviewKeyEvent { event ->
                 if (!isTv) return@onPreviewKeyEvent false
+                // When controls are visible, let the AndroidView handle all
+                // key events so the user can navigate CC/gear/seek bar.
+                if (controlsVisible) return@onPreviewKeyEvent false
+
                 val pv = playerView ?: return@onPreviewKeyEvent false
                 val dominated = when (event.key) {
                     Key.DirectionLeft, Key.DirectionRight,
