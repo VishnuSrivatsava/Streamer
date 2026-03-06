@@ -72,8 +72,10 @@ fun PlayerScreen(
     var playerView by remember { mutableStateOf<PlayerView?>(null) }
     val playerFocusRequester = remember { FocusRequester() }
 
-    // Give the root Box Compose focus so it receives key events on TV
-    LaunchedEffect(Unit) {
+    // Give the root Box Compose focus so it receives key events on TV.
+    // Re-request when controls hide because the resize button (clickable = focusable)
+    // can steal focus while controls are visible.
+    LaunchedEffect(controlsVisible) {
         if (isTv) {
             try { playerFocusRequester.requestFocus() } catch (_: Exception) {}
         }
@@ -160,30 +162,36 @@ fun PlayerScreen(
             .focusable()
             .onPreviewKeyEvent { event ->
                 if (!isTv) return@onPreviewKeyEvent false
-                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 val pv = playerView ?: return@onPreviewKeyEvent false
+                // Consume both ACTION_DOWN and ACTION_UP for handled keys
+                val dominated = when (event.key) {
+                    Key.DirectionLeft, Key.DirectionRight,
+                    Key.DirectionCenter, Key.Enter,
+                    Key.DirectionUp, Key.DirectionDown -> true
+                    else -> false
+                }
+                if (!dominated) return@onPreviewKeyEvent false
+                // Only act on key-down, but consume key-up too
+                if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent true
                 when (event.key) {
                     Key.DirectionLeft -> {
                         player.seekBack()
                         pv.showController()
-                        true
                     }
                     Key.DirectionRight -> {
                         player.seekForward()
                         pv.showController()
-                        true
                     }
                     Key.DirectionCenter, Key.Enter -> {
                         if (player.isPlaying) player.pause() else player.play()
                         pv.showController()
-                        true
                     }
                     Key.DirectionUp, Key.DirectionDown -> {
                         pv.showController()
-                        true
                     }
-                    else -> false
+                    else -> {}
                 }
+                true
             }
     ) {
         AndroidView(
@@ -192,7 +200,7 @@ fun PlayerScreen(
                     this.player = player
                     useController = true
                     controllerAutoShow = true
-                    controllerShowTimeoutMs = 3000
+                    controllerShowTimeoutMs = 5000
                     setShowBuffering(PlayerView.SHOW_BUFFERING_ALWAYS)
                     setShowSubtitleButton(true)
                     setControllerVisibilityListener(
@@ -213,8 +221,8 @@ fun PlayerScreen(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Resize mode toggle (top-right, visible only when player controls are showing)
-        if (controlsVisible) {
+        // Resize mode toggle (top-right, visible only when player controls are showing, phone only)
+        if (controlsVisible && !isTv) {
             val resizeLabel = when (resizeMode) {
                 AspectRatioFrameLayout.RESIZE_MODE_FIT -> "Fit"
                 AspectRatioFrameLayout.RESIZE_MODE_ZOOM -> "Crop"

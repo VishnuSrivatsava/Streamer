@@ -78,8 +78,8 @@ object StreamerPlayer {
         val player = ExoPlayer.Builder(context, renderersFactory)
             .setMediaSourceFactory(mediaSourceFactory)
             .setTrackSelector(trackSelector)
-            .setSeekBackIncrementMs(10_000)
-            .setSeekForwardIncrementMs(10_000)
+            .setSeekBackIncrementMs(5_000)
+            .setSeekForwardIncrementMs(5_000)
             .build()
 
         // Error logging
